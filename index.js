@@ -1,7 +1,6 @@
 import http from 'http';
-import { sendMessage } from './src/send-slack-message.js'
-import { getOpenedMergeRequests } from './src/get-merge-requests.js'
-import { formatMessageFromMRsArray } from './src/format-message-from-mrs-array.js'
+import cron from 'node-cron'
+import { init } from './src/init.js'
 
 const port = process.env.PORT || 3000;
 
@@ -13,19 +12,12 @@ http
   })
   .listen(port, () => {
     console.info(`Server listening on port ${port}`)
-    init()
+
+    cron.schedule(process.env.CRON_TASK_INTERVAL, () => {
+      console.log('Running task');
+      init()
+    }, {
+      scheduled: true,
+      timezone: process.env.TASK_INTERVAL_TIMEZONE
+    });
   });
-
-
-async function init() {
-  try {
-    const openedMRsArray = await getOpenedMergeRequests()
-    const blocks = formatMessageFromMRsArray(openedMRsArray)
-    await sendMessage({
-        channel: process.env.SLACK_CHANNEL,
-        blocks,
-    })
-  } catch (err) {
-    console.log(err)
-  }
-}
